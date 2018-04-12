@@ -35,6 +35,8 @@ const (
 	syncPluginName                       = "openshift-sync"
 	secretName                           = "secret-to-credential"
 	secretCredentialSyncLabel            = "credential.sync.jenkins.openshift.io"
+	envVarsPipelineGitRepo               = "https://github.com/siamaksade/cart-service#pipeline"
+	envVarsPipelineGitRepoBuildConfig    = "cart-service"
 )
 
 func debugAnyJenkinsFailure(br *exutil.BuildResult, name string, oc *exutil.CLI, dumpMaster bool) {
@@ -773,6 +775,35 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 				g.By("clean up openshift resources for next potential run")
 				err = oc.Run("delete").Args("bc", "sample-pipeline-withenvs").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+			})
+
+			g.By("Pipeline with env vars and git repo source")
+
+			g.It("should propagate env vars to bc", func() {
+				// instantiate the bc
+				g.By(fmt.Sprintf("calling oc new-app %q --strategy=pipeline --build-env=FOO=BAR", envVarsPipelineGitRepo))
+				err := oc.Run("new-app").Args(envVarsPipelineGitRepo, "--strategy=pipeline", "--build-env=FOO=BAR").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				bc, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get(envVarsPipelineGitRepoBuildConfig, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				envs := bc.Spec.Strategy.JenkinsPipelineStrategy.Env
+				o.Expect(len(envs)).To(o.Equal(1))
+				o.Expect(envs[0].Name).To(o.Equal("FOO"))
+				o.Expect(envs[0].Value).To(o.Equal("BAR"))
+
+				//TODO: start the build and validate envs as well
+				/*g.By("starting the pipeline build, including env var, and waiting for it to complete")
+				br, err := exutil.StartBuildAndWait(oc, "-e", "FOO2=BAR2", envVarsPipelineGitRepoBuildConfig)
+				if err != nil || !br.BuildSuccess {
+					exutil.DumpBuilds(oc)
+				}
+				debugAnyJenkinsFailure(br, oc.Namespace()+envVarsPipelineGitRepoBuildConfig, oc, true)
+				br.AssertSuccess()*/
+
+				g.By("clean up openshift resources for next potential run")
+				err = oc.Run("delete").Args("bc", envVarsPipelineGitRepoBuildConfig).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 

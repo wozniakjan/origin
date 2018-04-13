@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/git"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/jenkins"
 )
@@ -35,8 +36,6 @@ const (
 	syncPluginName                       = "openshift-sync"
 	secretName                           = "secret-to-credential"
 	secretCredentialSyncLabel            = "credential.sync.jenkins.openshift.io"
-	envVarsPipelineGitRepo               = "https://github.com/siamaksade/cart-service#pipeline"
-	envVarsPipelineGitRepoBuildConfig    = "cart-service"
 )
 
 func debugAnyJenkinsFailure(br *exutil.BuildResult, name string, oc *exutil.CLI, dumpMaster bool) {
@@ -76,6 +75,8 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		podTemplateSlavePipelinePath           = exutil.FixturePath("testdata", "jenkins-slave-template.yaml")
 		multiNamespaceClientPluginPipelinePath = exutil.FixturePath("testdata", "multi-namespace-pipeline.yaml")
 		secretPath                             = exutil.FixturePath("testdata", "openshift-secret-to-jenkins-credential.yaml")
+		envVarsPipelineGitRepoUpstream         = `test/extended/testdata/builds/test-build-app-pipeline-upstream.git`
+		envVarsPipelineGitRepoBuildConfig      = `test-build-app-pipeline`
 
 		oc                       = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
 		ticker                   *time.Ticker
@@ -781,26 +782,54 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			g.By("Pipeline with env vars and git repo source")
 
 			g.It("should propagate env vars to bc", func() {
+				envVarsPipelineGitRepo := strings.TrimSuffix(envVarsPipelineGitRepoUpstream, `-upstream.git`)
+				g.By(fmt.Sprintf("clone git repo %v to %v", envVarsPipelineGitRepoUpstream, envVarsPipelineGitRepo))
+				gitRepo := git.NewRepository()
+				if err := gitRepo.Clone(envVarsPipelineGitRepo, envVarsPipelineGitRepoUpstream); err != nil {
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}
+				//TODO: delete gitRepo
+
 				// instantiate the bc
-				g.By(fmt.Sprintf("calling oc new-app %q --strategy=pipeline --build-env=FOO=BAR", envVarsPipelineGitRepo))
-				err := oc.Run("new-app").Args(envVarsPipelineGitRepo, "--strategy=pipeline", "--build-env=FOO=BAR").Execute()
+				g.By(fmt.Sprintf("calling oc new-app %q --strategy=pipeline --build-env=FOO1=BAR1", envVarsPipelineGitRepo))
+				err := oc.Run("new-app").Args(envVarsPipelineGitRepo, "--strategy=pipeline", "--build-env=FOO1=BAR1").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				bc, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get(envVarsPipelineGitRepoBuildConfig, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				envs := bc.Spec.Strategy.JenkinsPipelineStrategy.Env
 				o.Expect(len(envs)).To(o.Equal(1))
-				o.Expect(envs[0].Name).To(o.Equal("FOO"))
-				o.Expect(envs[0].Value).To(o.Equal("BAR"))
+				o.Expect(envs[0].Name).To(o.Equal("FOO1"))
+				o.Expect(envs[0].Value).To(o.Equal("BAR1"))
 
 				//TODO: start the build and validate envs as well
-				/*g.By("starting the pipeline build, including env var, and waiting for it to complete")
+				g.By("starting the pipeline build, including env var, and waiting for it to complete")
 				br, err := exutil.StartBuildAndWait(oc, "-e", "FOO2=BAR2", envVarsPipelineGitRepoBuildConfig)
 				if err != nil || !br.BuildSuccess {
 					exutil.DumpBuilds(oc)
 				}
 				debugAnyJenkinsFailure(br, oc.Namespace()+envVarsPipelineGitRepoBuildConfig, oc, true)
-				br.AssertSuccess()*/
+				br.AssertSuccess()
+
+				g.By("confirm all the log annotations are there")
+				_, err = jenkins.ProcessLogURLAnnotations(oc, br)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("get build console logs and see if succeeded")
+				out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
+				if err != nil {
+					exutil.DumpApplicationPodLogs("jenkins", oc)
+					exutil.DumpBuilds(oc)
+				}
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("and see if envs FOO1 and FOO2 are set")
+				if !strings.Contains(out, "FOO2 is BAR2") {
+					exutil.DumpApplicationPodLogs("jenkins", oc)
+					exutil.DumpBuilds(oc)
+					o.Expect(out).To(o.ContainSubstring("FOO1 is BAR1"))
+					o.Expect(out).To(o.ContainSubstring("FOO2 is BAR2"))
+				}
 
 				g.By("clean up openshift resources for next potential run")
 				err = oc.Run("delete").Args("bc", envVarsPipelineGitRepoBuildConfig).Execute()

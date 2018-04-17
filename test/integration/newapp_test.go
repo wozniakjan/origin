@@ -1349,7 +1349,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 					return fmt.Errorf("expected Item of type *buildapi.BuildConfig")
 				}
 				if !reflect.DeepEqual(bc.Spec.Output, buildapi.BuildOutput{}) {
-					return fmt.Errorf("invalid bc.Spec.Output, got %#v", bc.Spec.Output)
+					return fmt.Errorf("invalid bc.Spec.Output, got %#v %v %v", bc.Spec.Output, bc.Spec.Output, bc.Spec.Output.ImageLabels)
 				}
 				if !reflect.DeepEqual(bc.Spec.Source, buildapi.BuildSource{
 					ContextDir: "openshift/pipeline",

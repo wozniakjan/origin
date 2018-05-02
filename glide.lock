@@ -1,5 +1,5 @@
-hash: 8d9400ce356982e52e62591ee0287cc73b392f39979a20700aadebbfc83db87d
-updated: 2018-04-29T00:27:34.322141459-04:00
+hash: 014864144373a196479b8c8de3cfcf7da116eccf9a96f02fcec203caa3fb1baa
+updated: 2018-05-03T15:26:05.246103546+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -817,8 +817,8 @@ imports:
   subpackages:
   - go-selinux
   - go-selinux/label
-- name: github.com/openshift/api
-  version: 80a1e2bf16952088360b492c175703755deea8d2
+- name: github.com/wozniakjan/api
+  version: d0b103203ed3bd1a169dbc5d81c98f50286b11b8
   subpackages:
   - apps/v1
   - authorization/v1
@@ -836,8 +836,8 @@ imports:
   - template/v1
   - user/v1
   - webconsole/v1
-- name: github.com/openshift/client-go
-  version: b3f4c8b4682c151defdd33ce75acfbf5fb30bccc
+- name: github.com/wozniakjan/client-go
+  version: 499084bc6e2e953ae50bd443e1819ec8913f321c
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme

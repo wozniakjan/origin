@@ -1,5 +1,5 @@
-hash: 671262e74cab335d4e743b58e9770862b04e0be8d2fc70a7b48acdcbef3e6d6b
-updated: 2018-04-09T10:52:09.598399021-04:00
+hash: 983c27a4da3f48061b15606f92cfb447a022b3c70e5effb1fd3809764e5e0471
+updated: 2018-05-03T14:26:44.950607327+02:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -13,7 +13,7 @@ imports:
   - proto
   - sortkeys
 - name: github.com/golang/glog
-  version: 44145f04b68cf362d9c4df2182967c2275eaefed
+  version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
 - name: github.com/golang/protobuf
   version: 1643683e1b54a9e88ad26d98f81400c8c9d9f4f9
   subpackages:
@@ -60,6 +60,8 @@ imports:
   - user/v1
 - name: github.com/spf13/pflag
   version: 4c012f6dcd9546820e378d0bdda4d8fc772cdfea
+- name: github.com/wozniakjan/api
+  version: d0b103203ed3bd1a169dbc5d81c98f50286b11b8
 - name: golang.org/x/crypto
   version: 81e90905daefcd6fd217b62423c0908922eadb30
   subpackages:

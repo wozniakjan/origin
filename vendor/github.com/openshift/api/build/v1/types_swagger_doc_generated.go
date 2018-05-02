@@ -429,6 +429,7 @@ var map_ImageChangeTrigger = map[string]string{
 	"": "ImageChangeTrigger allows builds to be triggered when an ImageStream changes",
 	"lastTriggeredImageID": "lastTriggeredImageID is used internally by the ImageChangeController to save last used image ID for build",
 	"from":                 "from is a reference to an ImageStreamTag that will trigger a build when updated It is optional. If no From is specified, the From image from the build strategy will be used. Only one ImageChangeTrigger with an empty From reference is allowed in a build configuration.",
+	"automatic":            "automatic means that controller will trigger a build on object change as well",
 }
 
 func (ImageChangeTrigger) SwaggerDoc() map[string]string {

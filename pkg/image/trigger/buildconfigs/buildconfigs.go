@@ -133,6 +133,7 @@ func NewBuildConfigReactor(instantiator BuildConfigInstantiator, restclient rest
 
 // ImageChanged is passed a build config and a set of changes and updates the object if
 // necessary.
+//NOTE: 8. handles the ImageChanged() from pkg/image/controller/trigger/image_trigger_controller.go
 func (r *buildConfigReactor) ImageChanged(obj runtime.Object, tagRetriever trigger.TagRetriever) error {
 	bc := obj.(*buildapi.BuildConfig)
 
@@ -143,6 +144,7 @@ func (r *buildConfigReactor) ImageChanged(obj runtime.Object, tagRetriever trigg
 		if p == nil || (p.From != nil && p.From.Kind != "ImageStreamTag") {
 			continue
 		}
+		//NOTE: 9. maybe add a check here, if 'automatic' then trigger build, else ignore
 		var from *kapi.ObjectReference
 		if p.From != nil {
 			from = p.From

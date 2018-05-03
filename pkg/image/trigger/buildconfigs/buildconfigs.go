@@ -145,6 +145,11 @@ func (r *buildConfigReactor) ImageChanged(obj runtime.Object, tagRetriever trigg
 			continue
 		}
 		//NOTE: 9. maybe add a check here, if 'automatic' then trigger build, else ignore
+		if !p.Automatic {
+			// TODO: set appropriate level of log, probably 4
+			glog.Infof("Skipping automatic build %s/%s: %#v", bc.Namespace, bc.Name, request)
+			continue
+		}
 		var from *kapi.ObjectReference
 		if p.From != nil {
 			from = p.From

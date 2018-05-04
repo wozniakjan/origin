@@ -12,8 +12,8 @@ import:
   version: kubernetes-1.10.0
 - package: k8s.io/client-go
   version: kubernetes-1.10.0
-- package: github.com/openshift/api
-  version: master
+- package: github.com/wozniakjan/api
+  version: feature/imagechangetrigger
 - package: github.com/golang/glog
 - package: github.com/spf13/pflag
 # for gengo

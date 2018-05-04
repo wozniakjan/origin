@@ -1825,6 +1825,7 @@ func autoConvert_v1_ImageChangeTrigger_To_build_ImageChangeTrigger(in *v1.ImageC
 	} else {
 		out.From = nil
 	}
+	out.Automatic = in.Automatic
 	return nil
 }
 
@@ -1844,6 +1845,7 @@ func autoConvert_build_ImageChangeTrigger_To_v1_ImageChangeTrigger(in *build.Ima
 	} else {
 		out.From = nil
 	}
+	out.Automatic = in.Automatic
 	return nil
 }
 

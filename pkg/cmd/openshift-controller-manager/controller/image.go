@@ -53,6 +53,7 @@ func RunImageTriggerController(ctx ControllerContext) (bool, error) {
 			Reactor:   &triggerdeploymentconfigs.DeploymentConfigReactor{Client: appsClient.Apps()},
 		},
 	}
+	//NOTE: 1. instantiates handler for buildconfigs
 	sources = append(sources, imagetriggercontroller.TriggerSource{
 		Resource:  schema.GroupResource{Group: "build.openshift.io", Resource: "buildconfigs"},
 		Informer:  ctx.BuildInformers.Build().InternalVersion().BuildConfigs().Informer(),

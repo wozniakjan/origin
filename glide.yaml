@@ -37,10 +37,10 @@ import:
   version: origin-3.10-kubernetes-1.10.0
 
 # openshift second
-- package: github.com/openshift/api
-  version: master
-- package: github.com/openshift/client-go
-  version: master
+- package: github.com/wozniakjan/api
+  version: feature/imagechangetrigger
+- package: github.com/wozniakjan/client-go
+  version: feature/imagechangetrigger
 - package: github.com/openshift/imagebuilder
   version: master
 

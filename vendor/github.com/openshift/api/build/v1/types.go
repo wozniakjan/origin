@@ -946,6 +946,9 @@ type ImageChangeTrigger struct {
 	// will be used. Only one ImageChangeTrigger with an empty From reference is allowed in
 	// a build configuration.
 	From *corev1.ObjectReference `json:"from,omitempty" protobuf:"bytes,2,opt,name=from"`
+
+	// automatic means that controller will trigger a build on object change as well
+	Automatic bool `json:"automatic,omitempty" protobuf:"varint,3,opt,name=automatic"`
 }
 
 // BuildTriggerPolicy describes a policy for a single trigger that results in a new Build.

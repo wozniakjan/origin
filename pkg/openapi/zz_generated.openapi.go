@@ -6144,6 +6144,13 @@ func schema_openshift_api_build_v1_ImageChangeTrigger(ref common.ReferenceCallba
 							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
 						},
 					},
+					"automatic": {
+						SchemaProps: spec.SchemaProps{
+							Description: "automatic means that controller will trigger a build on object change as well",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},

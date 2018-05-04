@@ -176,6 +176,7 @@ func NewTriggerController(eventBroadcaster record.EventBroadcaster, isInformer i
 	})
 	c.syncs = []cache.InformerSynced{isInformer.Informer().HasSynced}
 
+	//NOTE: 0. setup triggers for sources
 	triggers, syncs, err := setupTriggerSources(c.triggerCache, c.tagRetriever, sources, c.imageChangeQueue)
 	if err != nil {
 		panic(err)
@@ -233,6 +234,7 @@ func (c *TriggerController) Run(workers int, stopCh <-chan struct{}) {
 
 func (c *TriggerController) addImageStreamNotification(obj interface{}) {
 	is := obj.(*imageapi.ImageStream)
+	//NOTE: 2. here it sends IS to the queue
 	c.enqueueImageStreamFn(is)
 }
 
@@ -246,6 +248,7 @@ func (c *TriggerController) enqueueImageStream(is *imageapi.ImageStream) {
 		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", is, err))
 		return
 	}
+	//NOTE: 2. here it sends IS to the queue
 	c.queue.Add(key)
 }
 
@@ -264,6 +267,7 @@ func (c *TriggerController) processNextImageStream() bool {
 	}
 	defer c.queue.Done(key)
 
+	//NOTE: 3. here it gets IS from first queue and looks up related images in the cache
 	err := c.syncImageStreamFn(key.(string))
 	c.handleImageStreamErr(err, key)
 
@@ -302,6 +306,7 @@ func (c *TriggerController) processNextResource() bool {
 	}
 	defer c.imageChangeQueue.Done(key.(string))
 
+	//NOTE: 6. processes the second queue
 	err := c.syncResourceFn(key.(string))
 	c.handleResourceErr(err, key.(string))
 
@@ -337,6 +342,7 @@ func (c *TriggerController) syncImageStream(key string) error {
 	}
 
 	// find the set of triggers to act on
+	//NOTE: 4. queries all images triggered by the IS
 	triggered, err := c.triggerCache.ByIndex("images", key)
 	if err != nil {
 		return err
@@ -349,6 +355,7 @@ func (c *TriggerController) syncImageStream(key string) error {
 	// TODO: possibly filter for impossible triggers
 	for _, t := range triggered {
 		entry := t.(*trigger.CacheEntry)
+		//NOTE: 5. sends the image into another queue
 		c.imageChangeQueue.Add(entry.Key)
 	}
 	return nil
@@ -374,5 +381,6 @@ func (c *TriggerController) syncResource(key string) error {
 		return nil
 	}
 
+	//NOTE: 7. calls ImageChanged handler for particular object, follow pkg/cmd/openshift-controller-manager/controller/image.go:92
 	return source.Reactor.ImageChanged(obj.(runtime.Object), c.tagRetriever)
 }

@@ -608,7 +608,15 @@ func StartBuildAndWait(oc *CLI, args ...string) (result *BuildResult, err error)
 	if err != nil {
 		return result, err
 	}
-	return result, WaitForBuildResult(oc.BuildClient().Build().Builds(oc.Namespace()), result)
+	err = WaitForBuildResult(oc.BuildClient().Build().Builds(oc.Namespace()), result)
+	if err != nil {
+		return result, err
+	}
+	log, err := result.Logs()
+	fmt.Println("framework.StartBuildAndWait() - Printing build logs")
+	fmt.Println(log)
+	fmt.Println("framework.StartBuildAndWait() - Printed build logs")
+	return result, err
 }
 
 // WaitForBuildResult updates result wit the state of the build

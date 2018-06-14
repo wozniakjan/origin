@@ -15,9 +15,8 @@
             type: "imageChange"
             imageChange: {}
         source: 
-          type: "Git"
-          git: 
-            uri: "git://github.com/openshift/ruby-hello-world.git"
+          type: "binary"
+          binary: {}
         strategy: 
           type: "Source"
           sourceStrategy: 

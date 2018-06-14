@@ -137,17 +137,24 @@ var _ = g.Describe("[Feature:Builds][Slow] using build configuration runPolicy",
 				bcName := "sample-serial-build"
 				buildVerified := map[string]bool{}
 
-				for i := 0; i < 3; i++ {
-					stdout, _, err := exutil.StartBuild(oc, bcName, "-o=name")
-					o.Expect(err).NotTo(o.HaveOccurred())
-					startedBuilds = append(startedBuilds, strings.TrimSpace(strings.Split(stdout, "/")[1]))
-				}
+				g.By("initializing local repo")
+				repo, err := exutil.NewGitRepo("serial-build")
+				defer repo.Remove()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = repo.AddAndCommit("Dockerfile", "FROM busybox")
+				o.Expect(err).NotTo(o.HaveOccurred())
 
 				buildWatch, err := oc.BuildClient().Build().Builds(oc.Namespace()).Watch(metav1.ListOptions{
 					LabelSelector: buildutil.BuildConfigSelector(bcName).String(),
 				})
 				defer buildWatch.Stop()
 				o.Expect(err).NotTo(o.HaveOccurred())
+
+				for i := 0; i < 3; i++ {
+					stdout, _, err := exutil.StartBuild(oc, bcName, "-o=name", "--from-repo", repo.RepoPath)
+					o.Expect(err).NotTo(o.HaveOccurred())
+					startedBuilds = append(startedBuilds, strings.TrimSpace(strings.Split(stdout, "/")[1]))
+				}
 
 				sawCompletion := false
 				for {

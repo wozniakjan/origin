@@ -353,6 +353,7 @@ func (d *DockerBuilder) buildLabels(sourceInfo *git.SourceInfo) []dockerfile.Key
 		kv = append(kv, dockerfile.KeyValue{Key: k, Value: v})
 	}
 	fmt.Println("###### docker buildLabels", labels, kv)
+	panic("came here and panicked")
 	return kv
 }
 

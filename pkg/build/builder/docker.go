@@ -18,6 +18,7 @@ import (
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/tar"
+	"github.com/openshift/source-to-image/pkg/util"
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"

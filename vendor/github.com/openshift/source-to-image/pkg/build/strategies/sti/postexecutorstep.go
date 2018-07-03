@@ -428,7 +428,7 @@ func createLabelsForResultingImage(builder *STI, docker dockerpkg.Docker, baseIm
 
 	configLabels := builder.config.Labels
 	newLabels := builder.newLabels
-	merged := mergeLabels(configLabels, generatedLabels, existingLabels, newLabels)
+	merged := mergeLabels(existingLabels, generatedLabels, configLabels, newLabels)
 	fmt.Printf("postexecutorstep \nconfig %v\ngenerated %v\nexisting %v\nnew %v\nmerged %v\n", configLabels, generatedLabels, existingLabels, newLabels, merged)
 	return merged
 }

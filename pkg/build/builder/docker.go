@@ -352,6 +352,7 @@ func (d *DockerBuilder) buildLabels(sourceInfo *git.SourceInfo) []dockerfile.Key
 	for k, v := range labels {
 		kv = append(kv, dockerfile.KeyValue{Key: k, Value: v})
 	}
+	fmt.Println("###### docker buildLabels", labels, kv)
 	return kv
 }
 

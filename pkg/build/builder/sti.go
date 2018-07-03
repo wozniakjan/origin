@@ -428,6 +428,7 @@ func s2iBuildLabels(build *buildapi.Build, sourceInfo *git.SourceInfo) map[strin
 	for _, lbl := range build.Spec.Output.ImageLabels {
 		labels[lbl.Name] = lbl.Value
 	}
+	fmt.Println("###### sti labels", labels)
 	return labels
 }
 

@@ -290,6 +290,7 @@ func (s *S2IBuilder) Build() error {
 		redactedConfig := util.SafeForLoggingS2IConfig(config)
 		glog.V(4).Infof("Creating a new S2I builder with config: %#v\n", describe.Config(client, redactedConfig))
 	}
+	fmt.Println("###### builder build", config.Labels)
 	builder, buildInfo, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: nil})
 	if err != nil {
 		s.build.Status.Phase = buildapi.BuildPhaseFailed

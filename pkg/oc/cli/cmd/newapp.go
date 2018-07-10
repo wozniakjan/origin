@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -154,6 +155,37 @@ type NewAppOptions struct {
 	*ObjectGeneratorOptions
 }
 
+func checkResources(discoveryClient discovery.DiscoveryInterface, items []runtime.Object) error {
+	resources, err := discoveryClient.ServerResources()
+	if err != nil {
+		return fmt.Errorf("Unable to to get list of available resources: %v", err)
+	}
+
+	resourceMap := make(map[string]bool)
+	for _, resourceList := range resources {
+		for _, resource := range resourceList.APIResources {
+			resourceMap[resource.Kind] = true
+		}
+	}
+
+	declaredResources := make(map[string]bool)
+	for _, item := range items {
+		versioned := kcmdutil.AsDefaultVersionedOrOriginal(item, nil)
+		declaredResources[versioned.GetObjectKind().GroupVersionKind().Kind] = true
+	}
+	missingResources := make([]string, 0)
+	for r := range declaredResources {
+		if present := resourceMap[r]; !present {
+			missingResources = append(missingResources, r)
+		}
+	}
+
+	if len(missingResources) > 0 {
+		return fmt.Errorf("Missing declared resources: %v", strings.Join(missingResources, `, `))
+	}
+	return nil
+}
+
 //Complete sets all common default options for commands (new-app and new-build)
 func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f kcmdutil.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
 	cmdutil.WarnAboutCommaSeparation(errout, o.Config.Environment, "--env")
@@ -183,6 +215,12 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f kcmdut
 	if err != nil {
 		return err
 	}
+
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(clientConfig)
+	if err != nil {
+		return fmt.Errorf("Unable to validate if required resources are available: %v", err)
+	}
+	o.Config.DiscoveryClient = discoveryClient
 
 	o.Action.Out, o.Action.ErrOut = out, o.ErrOut
 	o.Action.Bulk.Scheme = legacyscheme.Scheme
@@ -305,6 +343,9 @@ func (o *NewAppOptions) RunNewApp() error {
 
 	result, err := config.Run()
 	if err := handleError(err, o.BaseName, o.CommandName, o.CommandPath, config, transformRunError); err != nil {
+		return err
+	}
+	if err := checkResources(config.DiscoveryClient, result.List.Items); err != nil {
 		return err
 	}
 

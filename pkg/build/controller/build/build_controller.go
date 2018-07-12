@@ -1006,12 +1006,33 @@ func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *v1.Pod)
 			// soon be deleted. The build should be transitioned to the Error phase.
 			if pod.DeletionTimestamp != nil {
 				update = transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonBuildPodDeleted, buildapi.StatusMessageBuildPodDeleted)
+			} else if isOOMKilled(pod) {
+				update = transitionToPhase(buildapi.BuildPhaseFailed, buildapi.StatusReasonOutOfMemoryKilled, buildapi.StatusMessageOutOfMemoryKilled)
 			} else {
 				update = transitionToPhase(buildapi.BuildPhaseFailed, buildapi.StatusReasonGenericBuildFailed, buildapi.StatusMessageGenericBuildFailed)
 			}
 		}
 	}
 	return update, nil
+}
+
+func isOOMKilled(pod *v1.Pod) bool {
+	if pod.Status.Reason == "OOMKilled" {
+		return true
+	}
+	for _, c := range pod.Status.InitContainerStatuses {
+		terminated := c.State.Terminated
+		if terminated != nil && terminated.Reason == "OOMKilled" {
+			return true
+		}
+	}
+	for _, c := range pod.Status.ContainerStatuses {
+		terminated := c.State.Terminated
+		if terminated != nil && terminated.Reason == "OOMKilled" {
+			return true
+		}
+	}
+	return false
 }
 
 // handleCompletedBuild will only be called on builds that are already in a terminal phase.  It is used to setup the

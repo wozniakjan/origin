@@ -1001,13 +1001,13 @@ func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *v1.Pod)
 			}
 		}
 	case v1.PodFailed:
-		if build.Status.Phase != buildapi.BuildPhaseFailed {
+		if isOOMKilled(pod) {
+			update = transitionToPhase(buildapi.BuildPhaseFailed, buildapi.StatusReasonOutOfMemoryKilled, buildapi.StatusMessageOutOfMemoryKilled)
+		} else if build.Status.Phase != buildapi.BuildPhaseFailed {
 			// If a DeletionTimestamp has been set, it means that the pod will
 			// soon be deleted. The build should be transitioned to the Error phase.
 			if pod.DeletionTimestamp != nil {
 				update = transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonBuildPodDeleted, buildapi.StatusMessageBuildPodDeleted)
-			} else if isOOMKilled(pod) {
-				update = transitionToPhase(buildapi.BuildPhaseFailed, buildapi.StatusReasonOutOfMemoryKilled, buildapi.StatusMessageOutOfMemoryKilled)
 			} else {
 				update = transitionToPhase(buildapi.BuildPhaseFailed, buildapi.StatusReasonGenericBuildFailed, buildapi.StatusMessageGenericBuildFailed)
 			}

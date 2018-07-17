@@ -322,6 +322,75 @@ func parseBuildConfigKey(key string) (string, string, error) {
 	return parts[0], parts[1], nil
 }
 
+func getState(cs v1.ContainerState) string {
+	if cs.Waiting != nil {
+		return "WAITING(" + cs.Waiting.Reason + ")"
+	}
+	if cs.Running != nil {
+		return "RUNNING()"
+	}
+	if cs.Terminated != nil {
+		return "TERMINATED(" + cs.Terminated.Reason + ")"
+	}
+	return ""
+}
+
+func getStatus(pod *v1.Pod) string {
+	str := "[" + string(pod.Status.Phase) + "]" + " init: ["
+	for _, c := range pod.Status.InitContainerStatuses {
+		str += getState(c.State) + ", "
+	}
+	str += "], cont: ["
+	for _, c := range pod.Status.ContainerStatuses {
+		str += getState(c.State) + ", "
+	}
+	str += "]"
+	return str
+}
+
+func printPod(o interface{}) string {
+	pod := o.(*v1.Pod)
+	if pod != nil {
+		return "POD " + pod.Name + getStatus(pod) + "\n"
+	}
+	return "POD nil"
+}
+
+func printBuild(o interface{}) string {
+	build := o.(*buildapi.Build)
+	if build != nil {
+		return "BUILD " + build.Name + "[" + string(build.Status.Phase) + "] [" + string(build.Status.Reason) + "]" + "\n"
+	}
+	return "BUILD nil"
+}
+
+func printUpdate(update *buildUpdate) string {
+	if update != nil && update.isEmpty() {
+		return "UPDATE nil"
+	}
+	return "UPDATE " + update.String()
+}
+
+var i int
+
+func printPre(pod *v1.Pod, build *buildapi.Build) {
+	glog.Infof("### PRE  %d %v", i, printPod(pod))
+	glog.Infof("### PRE  %d %v", i, printBuild(build))
+}
+func printPost(pod *v1.Pod, build *buildapi.Build, update *buildUpdate, err, updateErr error) {
+	glog.Infof("### POST %d %v", i, printPod(pod))
+	glog.Infof("### POST %d %v", i, printUpdate(update))
+	glog.Infof("### POST %d %v", i, printBuild(build))
+	if err != nil {
+		glog.Infof("### POST %d %v", i, err)
+	}
+	if updateErr != nil {
+		glog.Infof("### POST %d %v", i, updateErr)
+	}
+	glog.Infof("###")
+	i++
+}
+
 // handleBuild retrieves the build's corresponding pod and calls the appropriate
 // handle function based on the build's current state. Each handler returns a buildUpdate
 // object that includes any updates that need to be made on the build.
@@ -344,6 +413,7 @@ func (bc *BuildController) handleBuild(build *buildapi.Build) error {
 
 	pod, podErr := bc.podStore.Pods(build.Namespace).Get(buildapi.GetBuildPodName(build))
 
+	printPre(pod, build)
 	// Technically the only error that is returned from retrieving the pod is the
 	// NotFound error so this check should not be needed, but leaving here in case
 	// that changes in the future.
@@ -365,6 +435,7 @@ func (bc *BuildController) handleBuild(build *buildapi.Build) error {
 	case buildutil.IsBuildComplete(build):
 		update, err = bc.handleCompletedBuild(build, pod)
 	}
+	printPost(pod, build, update, err, updateErr)
 	if update != nil && !update.isEmpty() {
 		updateErr = bc.updateBuild(build, update, pod)
 	}
@@ -1354,6 +1425,7 @@ func buildDesc(build *buildapi.Build) string {
 // transitionToPhase returns a buildUpdate object to transition a build to a new
 // phase with the given reason and message
 func transitionToPhase(phase buildapi.BuildPhase, reason buildapi.StatusReason, message string) *buildUpdate {
+	glog.Infof("### transitioning to %v %v", phase, reason)
 	update := &buildUpdate{}
 	update.setPhase(phase)
 	update.setReason(reason)

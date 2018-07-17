@@ -175,6 +175,7 @@ func (c *builderConfig) clone() error {
 		c.build.Status.Phase = buildapiv1.BuildPhaseFailed
 		c.build.Status.Reason = buildapiv1.StatusReasonFetchSourceFailed
 		c.build.Status.Message = builderutil.StatusMessageFetchSourceFailed
+		fmt.Println("# builder 178")
 		return err
 	}
 
@@ -187,6 +188,7 @@ func (c *builderConfig) clone() error {
 		c.build.Status.Phase = buildapiv1.BuildPhaseFailed
 		c.build.Status.Reason = buildapiv1.StatusReasonFetchSourceFailed
 		c.build.Status.Message = builderutil.StatusMessageFetchSourceFailed
+		fmt.Println("# builder 191")
 		return err
 	}
 

@@ -354,6 +354,7 @@ func (builder *STI) Prepare(config *api.Config) error {
 				utilstatus.ReasonFetchSourceFailed,
 				utilstatus.ReasonMessageFetchSourceFailed,
 			)
+			fmt.Println("# sti 357")
 			return err
 		}
 		if config.SourceInfo != nil {

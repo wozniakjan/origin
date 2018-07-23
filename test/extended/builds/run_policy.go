@@ -129,13 +129,8 @@ var _ = g.Describe("[Feature:Builds][Slow] using build configuration runPolicy",
 		g.Describe("build configuration with Serial build run policy", func() {
 			g.It("runs the builds in serial order", func() {
 				g.By("starting multiple builds")
-				var (
-					startedBuilds []string
-					counter       int
-				)
-
+				var startedBuilds []string
 				bcName := "sample-serial-build"
-				buildVerified := map[string]bool{}
 
 				g.By("initializing local repo")
 				repo, err := exutil.NewGitRepo("serial-build")
@@ -156,52 +151,31 @@ var _ = g.Describe("[Feature:Builds][Slow] using build configuration runPolicy",
 					startedBuilds = append(startedBuilds, strings.TrimSpace(strings.Split(stdout, "/")[1]))
 				}
 
-				sawCompletion := false
-				for {
+				startTimes := make(map[string]*metav1.Time)
+				completionTimes := make(map[string]*metav1.Time)
+				for len(completionTimes) < len(startedBuilds) {
 					event := <-buildWatch.ResultChan()
 					build := event.Object.(*buildapi.Build)
-					var lastCompletion time.Time
 					if build.Status.Phase == buildapi.BuildPhaseComplete {
-						lastCompletion = time.Now()
 						o.Expect(build.Status.StartTimestamp).ToNot(o.BeNil(), "completed builds should have a valid start time")
 						o.Expect(build.Status.CompletionTimestamp).ToNot(o.BeNil(), "completed builds should have a valid completion time")
-						sawCompletion = true
-					}
-					if build.Status.Phase == buildapi.BuildPhaseRunning || build.Status.Phase == buildapi.BuildPhasePending {
-						latency := lastCompletion.Sub(time.Now())
-						o.Expect(latency).To(o.BeNumerically("<", 20*time.Second), "next build should have started less than 20s after last completed build")
-
-						// Ignore events from complete builds (if there are any) if we already
-						// verified the build.
-						if _, exists := buildVerified[build.Name]; exists {
-							continue
-						}
-						// Verify there are no other running or pending builds than this
-						// build as serial build always runs alone.
-						c := buildclient.NewClientBuildLister(oc.BuildClient().Build())
-						builds, err := buildutil.BuildConfigBuilds(c, oc.Namespace(), bcName, func(b *buildapi.Build) bool {
-							if b.Name == build.Name {
-								return false
-							}
-							if b.Status.Phase == buildapi.BuildPhaseRunning || b.Status.Phase == buildapi.BuildPhasePending {
-								return true
-							}
-							return false
-						})
-						o.Expect(err).NotTo(o.HaveOccurred())
-						o.Expect(builds).Should(o.BeEmpty())
-
-						// The builds should start in the same order as they were created.
-						o.Expect(build.Name).Should(o.BeEquivalentTo(startedBuilds[counter]))
-
-						buildVerified[build.Name] = true
-						counter++
-					}
-					if counter == len(startedBuilds) {
-						break
+						startTimes[build.Name] = build.Status.StartTimestamp
+						completionTimes[build.Name] = build.Status.CompletionTimestamp
 					}
 				}
-				o.Expect(sawCompletion).To(o.BeTrue(), "should have seen at least one build complete")
+
+				for i, b := range startedBuilds[:len(startedBuilds)-1] {
+					bNext := startedBuilds[i+1]
+					o.Expect(startTimes).To(o.HaveKey(b))
+					o.Expect(startTimes).To(o.HaveKey(bNext))
+					o.Expect(completionTimes).To(o.HaveKey(b))
+					o.Expect(completionTimes).To(o.HaveKey(bNext))
+					o.Expect(startTimes[b].Unix()).To(o.BeNumerically("<=", completionTimes[b].Unix()), fmt.Sprintf("build %q should have start time %v before or equal completion time %v", b, startTimes[b], completionTimes[b]))
+					o.Expect(startTimes[bNext].Unix()).To(o.BeNumerically("<=", completionTimes[bNext].Unix()), fmt.Sprintf("build %q should have start time %v before or equal completion time %v", bNext, startTimes[bNext], completionTimes[bNext]))
+					o.Expect(completionTimes[b].Unix()).To(o.BeNumerically("<=", startTimes[bNext].Unix()), fmt.Sprintf("build %q should have completion time %v before or equal %q start time %v", b, completionTimes[b], bNext, startTimes[bNext]))
+					delay := startTimes[bNext].Unix() - completionTimes[b].Unix()
+					o.Expect(delay).To(o.BeNumerically("<", 20*time.Second), fmt.Sprintf("next build %q started %v, but should have started less than 20s after last completed build %q which finished %v", bNext, startTimes[bNext], b, completionTimes[b]))
+				}
 			})
 		})
 

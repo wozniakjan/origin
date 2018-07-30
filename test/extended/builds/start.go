@@ -485,7 +485,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 
 					//oc run -i -t test --image=172.30.1.1:5000/myproject/is --restart=Never --command -- bash -c "if [ ! -L link ]; then exit 1; fi"
 					tag, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("symlink-is:latest", metav1.GetOptions{})
-					err = oc.Run("run").Args("-i", "-t", "symlink-test", "--image="+tag.Image.DockerImageReference, "--restart=Never", "--command", "--", `bash -c "if [ ! -L link ]; then exit 1; fi"`).Execute()
+					err = oc.Run("run").Args("-i", "-t", "symlink-test", "--image="+tag.Image.DockerImageReference, "--restart=Never", "--command", "--", "bash", "-c", "if [ ! -L link ]; then ls -ltr; exit 1; fi").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 				})
 			})
